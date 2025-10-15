@@ -1,12 +1,5 @@
 @import "tailwindcss";
 
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
-}
-
 @theme {
   --color-primary-50: rgb(255, 244, 241);
   --color-primary-100: rgb(255, 229, 223);
