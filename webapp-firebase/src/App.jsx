@@ -1,12 +1,14 @@
 import "./App.css";
 import Header from "./components/subParts/header";
+import { Routes, Route } from "react-router-dom";
 
 function App() {
   return (
     <>
-      <div>
-        <Header />
-      </div>
+      <Header />
+      <Routes>
+        <Route path="/" element={<Header />} />
+      </Routes>
     </>
   );
 }
