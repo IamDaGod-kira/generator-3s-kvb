@@ -1,6 +1,6 @@
 import { lazy } from "react";
 import "./App.css";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, HashRouter } from "react-router-dom";
 
 const Header = lazy(() => import("./components/subParts/header"));
 const Home = lazy(() => import("./components/home"));
