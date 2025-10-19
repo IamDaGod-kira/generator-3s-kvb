@@ -28,10 +28,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
         working-directory: ./webapp-firebase
+        env:
+          VITE_BASE_PATH: /pages-pre-release/
 
       - name: Build
         run: npm run build
         working-directory: ./webapp-firebase
+        env:
+          VITE_BASE_PATH: /pages-pre-release/
 
       - name: Deploy to pages-pre-release branch
         run: |
