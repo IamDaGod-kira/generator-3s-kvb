@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { Link } from 'react-router-dom'
 
 export default function Header() {
   const options = ["Dumdum", "Santragachi", "Ballygunge", "Saltlake"];
@@ -115,24 +116,24 @@ export default function Header() {
       {/* Navigation below header */}
       <div className="pt-28 flex justify-center">
         <nav className="flex justify-center gap-5 p-4 max-w-2xl bg-white rounded-lg shadow-md">
-          <a
+          <Link
             href="/login"
             className="px-6 py-3 bg-green-600 text-white font-bold rounded-lg hover:bg-white hover:text-green-600 transition-colors duration-300"
           >
            Login
-          </a>
-          <a
+          </Link>
+          <Link
             href="student_list.html"
             className="px-6 py-3 bg-blue-600 text-white font-bold rounded-lg hover:bg-white hover:text-blue-600 transition-colors duration-300"
           >
             Student List
-          </a>
-          <a
+          </Link>
+          <Link
             href="/"
             className="px-6 py-3 bg-gray-800 text-white font-bold rounded-lg hover:bg-white hover:text-gray-800 transition-colors duration-300"
           >
             Home
-          </a>
+          </Link>
         </nav>
       </div>
     </>
