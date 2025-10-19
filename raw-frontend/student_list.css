@@ -1,0 +1,19 @@
+* {
+    text-align: center;
+}
+
+body{
+    background: linear-gradient(to right, royalblue, slategrey);
+    color: gold;
+}
+button {
+    text-align: left;
+    font-size: medium;
+    width: 1300px;
+    color:#9D4A4B;
+}
+button:hover{
+    cursor: pointer;
+    background-color: aquamarine;
+    color: goldenrod;
+}
