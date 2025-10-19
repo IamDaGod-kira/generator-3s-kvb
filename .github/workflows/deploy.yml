@@ -1,4 +1,4 @@
-name: Deploy React App (Pre-Release)
+name: Build and Deploy React App (Pre-Release)
 
 on:
   push:
@@ -6,17 +6,16 @@ on:
       - pre-release
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 concurrency:
-  group: "pages"
+  group: "pages-pre-release"
   cancel-in-progress: true
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -34,14 +33,21 @@ jobs:
         run: npm run build
         working-directory: ./webapp-firebase
 
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
+      - name: Deploy to pages-pre-release branch
+        run: |
+          # Configure Git
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Upload build artifacts
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: ./webapp-firebase/dist
+          # Checkout or create the branch
+          git fetch origin pages-pre-release || true
+          git checkout -B pages-pre-release
 
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+          # Add build files
+          git --work-tree=./webapp-firebase/dist add --all
+
+          # Commit changes
+          git --work-tree=./webapp-firebase/dist commit -m "Deploy pre-release build" || echo "No changes to commit"
+
+          # Force push to branch
+          git push -f origin pages-pre-release
