@@ -29,13 +29,13 @@ jobs:
         run: npm ci
         working-directory: ./webapp-firebase
         env:
-          VITE_BASE_PATH: /pages-pre-release/
+          VITE_BASE_PATH: /3sg-hackathon-kvb/
 
       - name: Build
         run: npm run build
         working-directory: ./webapp-firebase
         env:
-          VITE_BASE_PATH: /pages-pre-release/
+          VITE_BASE_PATH: /3sg-hackathon-kvb/
 
       - name: Deploy to pages-pre-release branch
         run: |
