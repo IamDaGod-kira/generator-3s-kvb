@@ -1,5 +1,11 @@
 @import "tailwindcss";
 
 body {
-  background-color: #fff1e6;
+  background: 
+  linear-gradient(to left, rgba(15,23,42,0.9) 0%, rgba(15,23,42,0) 100%),
+  url('https://www.mappls.com/place/GOPP7A_1680693851340_0.png');
+background-size: cover;
+background-position: left center;
+background-repeat: no-repeat;
+
 }

@@ -116,10 +116,10 @@ export default function Header() {
       <div className="pt-28 flex justify-center">
         <nav className="flex justify-center gap-5 p-4 max-w-2xl bg-white rounded-lg shadow-md">
           <a
-            href="Enrollment.html"
+            href="/login"
             className="px-6 py-3 bg-green-600 text-white font-bold rounded-lg hover:bg-white hover:text-green-600 transition-colors duration-300"
           >
-            Enrollment
+           Login
           </a>
           <a
             href="student_list.html"
@@ -128,7 +128,7 @@ export default function Header() {
             Student List
           </a>
           <a
-            href="index.html"
+            href="/"
             className="px-6 py-3 bg-gray-800 text-white font-bold rounded-lg hover:bg-white hover:text-gray-800 transition-colors duration-300"
           >
             Home
