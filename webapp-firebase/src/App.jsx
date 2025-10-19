@@ -3,7 +3,8 @@ import "./App.css";
 import { Routes, Route, HashRouter } from "react-router-dom";
 
 const Header = lazy(() => import("./components/subParts/header"));
-const Home = lazy(() => import("./components/home"));
+import Home from './components/home';
+const Login = lazy(() => import('./components/login'))
 
 function App() {
   return (
@@ -11,6 +12,7 @@ function App() {
       <Header />
       <Routes>
         <Route path="/" element={<Home />} />
+        <Route path="/login" element={<Login />} />
       </Routes>
     </>
   );
