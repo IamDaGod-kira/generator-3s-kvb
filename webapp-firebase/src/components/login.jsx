@@ -2,9 +2,7 @@ import { lazy } from "react";
 
 export default function Login() {
   return (
-    <main
-      className="min-h-screen bg-inherit bg-center bg-no-repeat bg-cover text-center font-sans"
-    >
+    <main className="min-h-screen bg-inherit bg-center bg-no-repeat bg-cover text-center font-sans">
       <section className="max-w-3xl mx-auto mt-8 mb-10 bg-white p-8 rounded-2xl shadow-lg">
         <form className="space-y-6">
           <h1 className="text-2xl font-bold text-gray-900">
