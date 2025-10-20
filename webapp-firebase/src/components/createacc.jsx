@@ -22,17 +22,17 @@ export default function Createacc() {
     e.preventDefault();
     setLoading(true);
     try {
-      // 1️⃣ Create user in Firebase Auth
+      // 1️⃣ Create user in Firebase Auth with email + password
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         formData.email,
-        formData.uniqueid, // using uniqueid as password for now — ideally should be a separate field
+        formData.password,
       );
 
       // 2️⃣ Get last 4 digits of unique ID
       const uniquePart = formData.uniqueid.slice(-4);
 
-      // 3️⃣ Create Firestore doc in default collection (say "students")
+      // 3️⃣ Create Firestore doc inside "students" collection
       const collectionRef = collection(db, "students");
       const docRef = doc(collectionRef, uniquePart);
 
@@ -115,6 +115,19 @@ export default function Createacc() {
           />
 
           <label className="font-bold block mt-3 text-gray-700 text-sm">
+            Password
+          </label>
+          <input
+            type="password"
+            name="password"
+            onChange={handleChange}
+            required
+            minLength={6}
+            placeholder="Enter a password (min 6 chars)"
+            className="w-full p-2.5 mt-1 border border-gray-300 rounded-lg text-sm focus:border-blue-500 outline-none transition"
+          />
+
+          <label className="font-bold block mt-3 text-gray-700 text-sm">
             Unique ID
           </label>
           <input
@@ -146,17 +159,6 @@ export default function Createacc() {
             required
             className="w-full p-2.5 mt-1 border border-gray-300 rounded-lg text-sm focus:border-blue-500 outline-none transition"
           />
-
-          <label className="font-bold block mt-3 text-gray-700 text-sm">
-            Address
-          </label>
-          <textarea
-            name="address"
-            rows="3"
-            onChange={handleChange}
-            required
-            className="w-full p-2.5 mt-1 border border-gray-300 rounded-lg text-sm focus:border-blue-500 outline-none resize-none transition"
-          ></textarea>
 
           <button
             type="submit"
