@@ -26,7 +26,7 @@ export default function Createacc() {
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         formData.email,
-        formData.uniqueid // using uniqueid as password for now — ideally should be a separate field
+        formData.uniqueid, // using uniqueid as password for now — ideally should be a separate field
       );
 
       // 2️⃣ Get last 4 digits of unique ID

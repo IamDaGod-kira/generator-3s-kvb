@@ -10,12 +10,12 @@ const Createacc = lazy(() => import("./components/createacc"));
 function App() {
   return (
     <>
-  <Header />
-  <Routes>
-    <Route path="/" element={<Home />} />
-    <Route path="/login" element={<Login />} />
-    <Route path="/createacc" element={<Createacc />} />
-  </Routes>
+      <Header />
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/createacc" element={<Createacc />} />
+      </Routes>
     </>
   );
 }

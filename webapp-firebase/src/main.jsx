@@ -8,13 +8,13 @@ import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBqwNa_qpYJiMVKWqMQc2le-wZMEpaysnU",
-  authDomain: "sssg-hackathon-kvb.firebaseapp.com",
-  projectId: "sssg-hackathon-kvb",
-  storageBucket: "sssg-hackathon-kvb.firebasestorage.app",
-  messagingSenderId: "163541329249",
-  appId: "1:163541329249:web:1eea803eddbd3cbb191120",
-  measurementId: "G-XSN6VXPQ4B"
+  apiKey: import.meta.env.VITE_API_KEY,
+  authDomain: import.meta.env.VITE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_APP_ID,
+  measurementId: import.meta.env.VITE_MEASUREMENT_ID,
 };
 
 // Initialize Firebase
@@ -22,7 +22,6 @@ const app = initializeApp(firebaseConfig);
 
 export const auth = getAuth(app);
 export const db = getFirestore(app);
-
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
