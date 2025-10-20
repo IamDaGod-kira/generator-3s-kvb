@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
 
 export default function Header() {
   const options = ["Dumdum", "Santragachi", "Ballygunge", "Saltlake"];
@@ -123,7 +122,7 @@ export default function Header() {
             Organising School
           </a>
           <a
-            href="student_list.html"
+            href="/dashboard"
             className="px-6 py-3 bg-blue-600 text-white font-bold rounded-lg hover:bg-white hover:text-blue-600 transition-colors duration-300"
           >
             Dashboard
