@@ -68,11 +68,15 @@ export default function Login() {
           <button
             type="submit"
             className="bg-blue-600 text-white py-2 px-6 rounded-md hover:bg-blue-700 transition-colors duration-300"
-            onClick={() => (window.location.href = "school_page.html")}
           >
             Login to go to school website
           </button>
         </form>
+          <br />
+          <br />
+          <hr />
+          <br />
+          <a className="bg-blue-600 text-white py-2 px-6 rounded-md hover:bg-blue-700 transition-colors duration-300" href="/createacc">Create new Account</a>
       </section>
     </main>
   );

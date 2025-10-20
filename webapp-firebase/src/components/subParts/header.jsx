@@ -104,10 +104,10 @@ export default function Header() {
               Call Us
             </a>
             <a
-              href="login.html"
+              href="/login"
               className="bg-white text-blue-500 px-4 py-2 rounded-full font-bold transition hover:bg-[rgb(139,226,255)] hover:text-[rgb(0,81,255)] hover:shadow-md"
             >
-              Logout
+              Login
             </a>
           </div>
         </div>
@@ -117,16 +117,16 @@ export default function Header() {
       <div className="pt-28 flex justify-center">
         <nav className="flex justify-center gap-5 p-4 max-w-2xl bg-white rounded-lg shadow-md">
           <a
-            href="/login"
+            href="https://baligunge.kvs.ac.in/"
             className="px-6 py-3 bg-green-600 text-white font-bold rounded-lg hover:bg-white hover:text-green-600 transition-colors duration-300"
           >
-            Login
+            Organising School
           </a>
           <a
             href="student_list.html"
             className="px-6 py-3 bg-blue-600 text-white font-bold rounded-lg hover:bg-white hover:text-blue-600 transition-colors duration-300"
           >
-            Student List
+            Dashboard
           </a>
           <a
             href="/"
