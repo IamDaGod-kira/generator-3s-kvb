@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-const Createacc = lazy(() => import("./createacc"));
+const Login = lazy(() => import("./login"));
 
 export default function Home() {
   return (
@@ -74,7 +74,7 @@ export default function Home() {
               <div className="text-center text-gray-500">Loading form...</div>
             }
           >
-            <Createacc />
+            <Login />
           </Suspense>
         </div>
       </div>

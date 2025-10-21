@@ -12,160 +12,98 @@ export default function Login() {
   });
   const [loading, setLoading] = useState(false);
 
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
+  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     const { email, password, fullname, uniqueid } = form;
-
-    if (!email || !password || !fullname || !uniqueid) {
-      alert("Please fill all fields.");
-      return;
-    }
+    if (!email || !password || !fullname || !uniqueid) return alert("Please fill all fields.");
 
     setLoading(true);
     try {
-      // Step 1: Authenticate user
       await signInWithEmailAndPassword(auth, email, password);
-
-      // Step 2: Extract last 4 digits of unique ID
       const docId = uniqueid.slice(-4);
+      const docSnap = await getDoc(doc(db, "students", docId));
 
-      // Step 3: Fetch Firestore data
-      const docRef = doc(db, "students", docId);
-      const docSnap = await getDoc(docRef);
-
-      if (!docSnap.exists()) {
-        alert("Unique ID not associated / is wrong.");
-        setLoading(false);
-        return;
-      }
-
+      if (!docSnap.exists()) return alert("Unique ID not associated / is wrong.");
       const data = docSnap.data();
-
-      // Step 4: Validate fullname
-      if (data.fullname !== fullname) {
-        alert("Name doesn’t match our records.");
-        setLoading(false);
-        return;
-      }
+      if (data.fullname !== fullname) return alert("Name doesn’t match our records.");
 
       alert("Login successful!");
-      window.location.href = "/"; // redirect to homepage or dashboard
+      window.location.href = "/";
     } catch (error) {
       console.error(error);
-      switch (error.code) {
-        case "auth/invalid-email":
-          alert("Invalid email format.");
-          break;
-        case "auth/user-not-found":
-          alert("No user found with this email.");
-          break;
-        case "auth/wrong-password":
-          alert("Incorrect password.");
-          break;
-        default:
-          alert("Login failed. Please try again.");
-      }
+      const map = {
+        "auth/invalid-email": "Invalid email format.",
+        "auth/user-not-found": "No user found with this email.",
+        "auth/wrong-password": "Incorrect password.",
+      };
+      alert(map[error.code] || "Login failed. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <main className="min-h-screen bg-inherit bg-center bg-no-repeat bg-cover text-center font-sans">
-      <section className="max-w-3xl mx-auto mt-8 mb-10 bg-white p-8 rounded-2xl shadow-lg">
-        <form className="space-y-6" onSubmit={handleSubmit}>
-          <h1 className="text-2xl font-bold text-gray-900">
-            Login for PM Shri Kendriya Vidyalaya Ballygunge
+    <main className="flex items-center justify-center min-h-[80vh] bg-inherit font-sans">
+      <section className="bg-white w-[420px] max-w-full p-6 rounded-2xl shadow-md">
+        <form className="space-y-5" onSubmit={handleSubmit}>
+          <h1 className="text-xl font-bold text-blue-900 text-center">
+            Login to PM Shri KV Ballygunge
           </h1>
 
-          <div>
-            <h2 className="text-xl text-blue-900 mb-2 font-semibold">
-              <label htmlFor="email">Enter Email ID</label>
-            </h2>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              value={form.email}
-              onChange={handleChange}
-              placeholder="Enter Email ID"
-              required
-              className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          <div>
-            <h2 className="text-xl text-blue-900 mb-2 font-semibold">
-              <label htmlFor="fullname">Enter Full Name</label>
-            </h2>
-            <input
-              type="text"
-              id="fullname"
-              name="fullname"
-              value={form.fullname}
-              onChange={handleChange}
-              placeholder="Enter Full Name"
-              required
-              className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          <div>
-            <h2 className="text-xl text-blue-900 mb-2 font-semibold">
-              <label htmlFor="password">Enter Password</label>
-            </h2>
-            <input
-              type="password"
-              id="password"
-              name="password"
-              value={form.password}
-              onChange={handleChange}
-              placeholder="Password Required"
-              required
-              className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          <div>
-            <h2 className="text-xl text-blue-900 mb-2 font-semibold">
-              <label htmlFor="uniqueid">Enter Unique ID</label>
-            </h2>
-            <input
-              type="text"
-              id="uniqueid"
-              name="uniqueid"
-              value={form.uniqueid}
-              onChange={handleChange}
-              placeholder="Unique ID"
-              required
-              className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
+          <input
+            type="email"
+            name="email"
+            value={form.email}
+            onChange={handleChange}
+            placeholder="Enter Email ID"
+            className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+          />
+          <input
+            type="text"
+            name="fullname"
+            value={form.fullname}
+            onChange={handleChange}
+            placeholder="Enter Full Name"
+            className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+          />
+          <input
+            type="password"
+            name="password"
+            value={form.password}
+            onChange={handleChange}
+            placeholder="Password"
+            className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+          />
+          <input
+            type="text"
+            name="uniqueid"
+            value={form.uniqueid}
+            onChange={handleChange}
+            placeholder="Unique ID"
+            className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+          />
 
           <button
             type="submit"
             disabled={loading}
-            className={`bg-blue-600 text-white py-2 px-6 rounded-md transition-colors duration-300 ${
+            className={`w-full py-2 bg-blue-600 text-white rounded-md font-semibold transition ${
               loading ? "opacity-60 cursor-not-allowed" : "hover:bg-blue-700"
             }`}
           >
-            {loading ? "Logging in..." : "Login to go to school website"}
+            {loading ? "Logging in..." : "Login"}
           </button>
         </form>
 
-        <br />
-        <hr />
-        <br />
-        <a
-          className="bg-blue-600 text-white py-2 px-6 rounded-md hover:bg-blue-700 transition-colors duration-300"
-          href="/createacc"
-        >
-          Create new Account
-        </a>
+        <div className="mt-6 text-center">
+          <a
+            href="/createacc"
+            className="text-blue-700 hover:underline font-medium"
+          >
+            Create new Account
+          </a>
+        </div>
       </section>
     </main>
   );
