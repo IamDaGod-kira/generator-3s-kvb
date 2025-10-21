@@ -5,8 +5,8 @@ export default function Home() {
   return (
     <main className="max-w-6xl mx-auto my-10 bg-white rounded-xl shadow-lg overflow-hidden">
       <div className="flex flex-col lg:flex-row">
-        {/* Left Side: About + Achievements */}
-        <div className="w-full lg:w-1/2 p-8">
+        {/* Left Side: About + Achievements (larger area) */}
+        <div className="w-full lg:w-2/3 p-6 sm:p-8">
           {/* About Section */}
           <section className="mb-10">
             <h2 className="text-2xl text-blue-900 font-semibold mb-4">
@@ -67,8 +67,8 @@ export default function Home() {
           </section>
         </div>
 
-        {/* Right Side: Lazy-loaded Create Account Form */}
-        <div className="w-full lg:w-1/2 p-8 bg-gradient-to-r from-[#ebe045]/20 to-[#33cfff]/20 flex items-center justify-center">
+        {/* Right Side: Login Form (smaller area) */}
+        <div className="w-full lg:w-1/3 p-6 sm:p-8 bg-gradient-to-r from-[#ebe045]/20 to-[#33cfff]/20 flex items-center justify-center">
           <Suspense
             fallback={
               <div className="text-center text-gray-500">Loading form...</div>

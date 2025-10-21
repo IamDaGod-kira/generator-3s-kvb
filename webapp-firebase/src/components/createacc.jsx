@@ -46,11 +46,12 @@ export default function Createacc() {
   };
 
   return (
-    <main className="flex items-center justify-center min-h-screen bg-gradient-to-r from-[#d3f3ff]/30 to-[#fff0a5]/30 font-sans">
-      <div className="bg-white p-10 rounded-2xl shadow-xl w-[500px] max-w-full">
-        <h2 className="text-center mb-6 text-sky-700 text-[22px] font-bold tracking-wide">
+    <main className="flex items-center justify-center min-h-screen bg-inherit font-sans px-4 sm:px-6">
+      <div className="bg-white w-full max-w-md sm:max-w-lg lg:max-w-xl p-6 sm:p-8 rounded-2xl shadow-xl">
+        <h2 className="text-center mb-6 text-sky-700 text-xl sm:text-2xl font-bold tracking-wide">
           Student Enrollment Form
         </h2>
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <input
             type="text"
