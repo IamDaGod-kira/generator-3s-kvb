@@ -15,6 +15,22 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Create .env from GitHub Secrets
+        working-directory: ./webapp-firebase
+        run: |
+          touch .env
+          echo "Creating .env file from GitHub secrets..."
+          for var in $(printenv | grep ^VITE_); do
+            key=$(echo $var | cut -d= -f1)
+            value=$(printenv $key)
+            echo "$key=$value" >> .env
+          done
+
       - name: Install dependencies and build
         working-directory: ./webapp-firebase
         run: |

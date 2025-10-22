@@ -73,7 +73,7 @@ export default function Header() {
               className="h-10 sm:h-14"
             />
             <h1 className="text-xl sm:text-2xl font-bold text-white">
-              Kendriya Vidyalaya
+              P.M. Shri Kendriya Vidyalaya
             </h1>
           </div>
 
