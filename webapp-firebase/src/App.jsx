@@ -8,6 +8,7 @@ const Home = lazy(() => import("./components/home"));
 const Login = lazy(() => import("./components/login"));
 const Createacc = lazy(() => import("./components/createacc"));
 const Dashboard = lazy(() => import("./components/dashboard"));
+const Protected = lazy(() => import('./components/subParts/protected'))
 
 function App() {
   return (
@@ -42,7 +43,9 @@ function App() {
           path="/dashboard"
           element={
             <Suspense fallback={<Loading />}>
+              <Protected>
               <Dashboard />
+              </Protected>
             </Suspense>
           }
         />

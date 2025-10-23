@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { auth, db } from "../../main";
-import { doc, updateDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc, setDoc } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { User } from "lucide-react";
 
@@ -13,15 +13,44 @@ export default function Header() {
   const [fade, setFade] = useState(true);
   const [user, setUser] = useState(null);
 
+  // Watch auth state
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
+
+      if (currentUser) {
+        try {
+          const userRef = doc(db, "students", currentUser.uid);
+          const userSnap = await getDoc(userRef);
+
+          if (userSnap.exists() && userSnap.data().zone) {
+            const userZone = userSnap.data().zone;
+            setSelected(userZone);
+            setCurrent(userZone);
+            localStorage.setItem("zone", userZone);
+          } else {
+            const localZone = localStorage.getItem("zone");
+            if (localZone) {
+              await setDoc(userRef, { zone: localZone }, { merge: true });
+            }
+          }
+        } catch (err) {
+          console.error("Error loading zone:", err);
+        }
+      } else {
+        setSelected(null);
+        const localZone = localStorage.getItem("zone");
+        if (localZone) setSelected(localZone);
+      }
     });
+
     return () => unsubscribe();
   }, []);
 
+  // Cycle zones when not logged in or selected
   useEffect(() => {
-    if (selected) return;
+    if (selected || user) return;
+
     const interval = setInterval(() => {
       setFade(false);
       setTimeout(() => {
@@ -31,14 +60,11 @@ export default function Header() {
         setFade(true);
       }, 300);
     }, 2000);
+
     return () => clearInterval(interval);
-  }, [index, selected]);
+  }, [index, selected, user]);
 
-  useEffect(() => {
-    const saved = localStorage.getItem("zone");
-    if (saved) setSelected(saved);
-  }, []);
-
+  // Handle selection
   const handleZoneSelect = async (option) => {
     setSelected(option);
     setCurrent(option);
@@ -49,15 +75,16 @@ export default function Header() {
       try {
         const userRef = doc(db, "students", user.uid);
         await updateDoc(userRef, { zone: option });
-      } catch (err) {
-        console.error("Error updating zone:", err);
+      } catch {
+        // fallback: create new doc if missing
+        const userRef = doc(db, "students", user.uid);
+        await setDoc(userRef, { zone: option }, { merge: true });
       }
     }
   };
 
   return (
     <>
-      {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-[#9D4A4B] text-[gold] shadow-md font-['Libertinus_Serif_Display']">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-col sm:flex-row sm:items-center text-center sm:text-left w-full sm:w-auto">
@@ -69,7 +96,6 @@ export default function Header() {
             <h1 className="text-lg sm:text-2xl font-bold text-white leading-tight mt-2 sm:mt-0 sm:ml-3">
               P.M. Shri Kendriya Vidyalaya
               <br />
-              Ballygunge
             </h1>
 
             <div className="relative mt-3 sm:mt-0 sm:ml-4 mx-auto sm:mx-0">
@@ -149,10 +175,8 @@ export default function Header() {
         </div>
       </header>
 
-      {/* Spacer for header + nav */}
       <div className="h-[200px] sm:h-[160px]"></div>
 
-      {/* Navigation below header */}
       <div className="flex justify-center px-3">
         <nav className="flex flex-wrap justify-center gap-3 sm:gap-5 p-4 max-w-2xl bg-white rounded-lg shadow-md">
           <a
