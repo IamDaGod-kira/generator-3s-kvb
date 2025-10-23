@@ -13,7 +13,6 @@ export default function Header() {
   const [fade, setFade] = useState(true);
   const [user, setUser] = useState(null);
 
-  // Track login state
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
@@ -21,7 +20,6 @@ export default function Header() {
     return () => unsubscribe();
   }, []);
 
-  // Zone rotation animation
   useEffect(() => {
     if (selected) return;
     const interval = setInterval(() => {
@@ -36,18 +34,15 @@ export default function Header() {
     return () => clearInterval(interval);
   }, [index, selected]);
 
-  // Load zone from Firebase or localStorage
   useEffect(() => {
     const saved = localStorage.getItem("zone");
     if (saved) setSelected(saved);
   }, []);
 
-  // Save selected zone (locally or to user account)
   const handleZoneSelect = async (option) => {
     setSelected(option);
     setCurrent(option);
     setOpen(false);
-
     localStorage.setItem("zone", option);
 
     if (user) {
@@ -64,70 +59,69 @@ export default function Header() {
     <>
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-[#9D4A4B] text-[gold] shadow-md font-['Libertinus_Serif_Display']">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between flex-wrap">
-          {/* Logo */}
-          <div className="flex items-center gap-3">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center text-center sm:text-left w-full sm:w-auto">
             <img
               src="https://upload.wikimedia.org/wikipedia/en/thumb/b/ba/KVS_SVG_logo.svg/1100px-KVS_SVG_logo.svg.png"
               alt="KVS Logo"
-              className="h-10 sm:h-14"
+              className="h-10 sm:h-14 mx-auto sm:mx-0"
             />
-            <h1 className="text-xl sm:text-2xl font-bold text-white">
+            <h1 className="text-lg sm:text-2xl font-bold text-white leading-tight mt-2 sm:mt-0 sm:ml-3">
               P.M. Shri Kendriya Vidyalaya
+              <br />
+              Ballygunge
             </h1>
-          </div>
 
-          {/* Zone dropdown */}
-          <div className="relative mt-2 sm:mt-0">
-            <button
-              onClick={() => setOpen(!open)}
-              className={`inline-flex items-center justify-between px-3 py-1 rounded-md font-semibold transition ${
-                selected
-                  ? "bg-[#f8f4f4] text-[#9D4A4B]"
-                  : "bg-[#f8f4f4]/70 text-[#9D4A4B]/70 italic"
-              }`}
-            >
-              <span
-                className={`transition-opacity duration-500 ${
-                  fade ? "opacity-100" : "opacity-30"
+            <div className="relative mt-3 sm:mt-0 sm:ml-4 mx-auto sm:mx-0">
+              <button
+                onClick={() => setOpen(!open)}
+                className={`inline-flex items-center justify-between px-3 py-1 rounded-md font-semibold transition ${
+                  selected
+                    ? "bg-[#f8f4f4] text-[#9D4A4B]"
+                    : "bg-[#f8f4f4]/70 text-[#9D4A4B]/70 italic"
                 }`}
               >
-                {selected || current}
-              </span>
-              <svg
-                className={`w-4 h-4 ml-2 transition-transform duration-200 ${
-                  open ? "rotate-180" : ""
-                }`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M19 9l-7 7-7-7"
-                />
-              </svg>
-            </button>
+                <span
+                  className={`transition-opacity duration-500 ${
+                    fade ? "opacity-100" : "opacity-30"
+                  }`}
+                >
+                  {selected || current}
+                </span>
+                <svg
+                  className={`w-4 h-4 ml-2 transition-transform duration-200 ${
+                    open ? "rotate-180" : ""
+                  }`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
+              </button>
 
-            {open && (
-              <div className="absolute left-0 mt-2 w-40 bg-white border border-gray-200 rounded-lg shadow-lg z-50 overflow-hidden">
-                {options.map((option) => (
-                  <button
-                    key={option}
-                    onClick={() => handleZoneSelect(option)}
-                    className="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-[#f5f5f5] transition"
-                  >
-                    {option}
-                  </button>
-                ))}
-              </div>
-            )}
+              {open && (
+                <div className="absolute left-0 mt-2 w-40 bg-white border border-gray-200 rounded-lg shadow-lg z-50 overflow-hidden">
+                  {options.map((option) => (
+                    <button
+                      key={option}
+                      onClick={() => handleZoneSelect(option)}
+                      className="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-[#f5f5f5] transition"
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* Buttons */}
-          <div className="flex items-center gap-2 mt-3 sm:mt-0">
+          <div className="flex justify-center sm:justify-end items-center gap-2 mt-4 sm:mt-0">
             <a
               href="call.html"
               className="bg-green-400 text-green-700 px-3 sm:px-4 py-2 rounded-full font-bold transition hover:bg-white hover:shadow-md text-sm sm:text-base"
@@ -155,8 +149,11 @@ export default function Header() {
         </div>
       </header>
 
+      {/* Spacer for header + nav */}
+      <div className="h-[200px] sm:h-[160px]"></div>
+
       {/* Navigation below header */}
-      <div className="pt-28 flex justify-center px-3">
+      <div className="flex justify-center px-3">
         <nav className="flex flex-wrap justify-center gap-3 sm:gap-5 p-4 max-w-2xl bg-white rounded-lg shadow-md">
           <a
             href="https://baligunge.kvs.ac.in/"

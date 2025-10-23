@@ -1,5 +1,4 @@
 # Deploy React app (inside ./webapp-firebase) to Firebase Hosting on merge to master
-
 name: Deploy to Firebase Hosting
 
 on:
@@ -20,18 +19,32 @@ jobs:
         with:
           node-version: 20
 
-      - name: Recreate .env file from GitHub secrets
+      - name: Create .env from GitHub Secrets
         working-directory: ./webapp-firebase
         run: |
-          echo "Rebuilding .env file from GitHub secrets..."
+          echo "Creating .env file from GitHub secrets..."
           touch .env
+          echo "VITE_APIKEY=${{ secrets.VITE_APIKEY }}" >> .env
+          echo "VITE_AUTHDOMAIN=${{ secrets.VITE_AUTHDOMAIN }}" >> .env
+          echo "VITE_PROJECTID=${{ secrets.VITE_PROJECTID }}" >> .env
+          echo "VITE_STORAGEBUCKET=${{ secrets.VITE_STORAGEBUCKET }}" >> .env
+          echo "VITE_MESSAGINGSENDERID=${{ secrets.VITE_MESSAGINGSENDERID }}" >> .env
+          echo "VITE_APPID=${{ secrets.VITE_APPID }}" >> .env
+          echo "VITE_MEASUREMENTID=${{ secrets.VITE_MEASUREMENTID }}" >> .env
+          echo "VITE_AIAPI=${{ secrets.VITE_AIAPI }}" >> .env
+          echo "✅ .env file created successfully"
 
-          # Pull all secrets (including VITE_ ones)
-          for var in $(printenv | grep -E '^(VITE_|REACT_|FIREBASE_|API_|APP_)'); do
-            key=$(echo $var | cut -d= -f1)
-            value=$(printenv $key)
-            echo "$key=$value" >> .env
-          done
+      - name: Install dependencies and build
+        working-directory: ./webapp-firebase
+        run: |
+          npm ci
+          npm run build
 
-          echo "✅ .env file created:"
-          cat .env | grep -v PASSWORD || true  # avoid printing sensit
+      - name: Deploy to Firebase Hosting
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_GENERATOR_3SG_KVB }}
+          channelId: live
+          projectId: generator-3sg-kvb
+          entryPoint: ./webapp-firebase

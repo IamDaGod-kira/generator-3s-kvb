@@ -3,12 +3,11 @@ import { auth, db } from "../main";
 import { onAuthStateChanged, deleteUser, signOut } from "firebase/auth";
 import {
   doc,
-  getDoc,
-  deleteDoc,
+  getDocs,
   collection,
   query,
   where,
-  getDocs,
+  deleteDoc,
 } from "firebase/firestore";
 
 export default function Dashboard() {
@@ -25,7 +24,7 @@ export default function Dashboard() {
         try {
           const q = query(
             collection(db, "students"),
-            where("email", "==", currentUser.email),
+            where("email", "==", currentUser.email)
           );
           const querySnapshot = await getDocs(q);
           if (!querySnapshot.empty) {
@@ -51,7 +50,7 @@ export default function Dashboard() {
     if (!studentData) return alert("No student data found to delete.");
     if (
       !window.confirm(
-        "Are you sure you want to delete your account? This cannot be undone.",
+        "Are you sure you want to delete your account? This cannot be undone."
       )
     )
       return;
@@ -124,29 +123,16 @@ export default function Dashboard() {
                   <strong>Full Name:</strong> {studentData.fullname}
                 </div>
                 <div>
-                  <strong>Father's Name:</strong> {studentData.fathername}
-                </div>
-                <div>
-                  <strong>Mother's Name:</strong> {studentData.mothername}
-                </div>
-                <div>
                   <strong>Email:</strong> {studentData.email}
-                </div>
-                <div>
-                  <strong>Unique ID:</strong> {studentData.uniqueid}
                 </div>
                 <div>
                   <strong>Phone:</strong> {studentData.phone}
                 </div>
                 <div>
-                  <strong>Alternate Phone:</strong> {studentData.altphone}
+                  <strong>Unique ID:</strong> {studentData.uniqueid}
                 </div>
                 <div>
-                  <strong>Password:</strong> {studentData.passwd}
-                </div>
-                <div>
-                  <strong>Created At:</strong>{" "}
-                  {new Date(studentData.createdAt).toLocaleString()}
+                  <strong>UID:</strong> {studentData.uid}
                 </div>
 
                 {/* Delete Account button */}
@@ -166,9 +152,7 @@ export default function Dashboard() {
                 </button>
               </div>
             ) : (
-              <p className="text-gray-500 text-center">
-                No student data found.
-              </p>
+              <p className="text-gray-500 text-center">No student data found.</p>
             )}
           </div>
         </div>
