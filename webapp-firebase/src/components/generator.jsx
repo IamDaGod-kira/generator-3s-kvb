@@ -1,48 +1,72 @@
 import React, { useState, useEffect } from "react";
 import { db, auth } from "../main";
-import { collection, query, where, getDocs, doc, setDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 
 export default function Generator() {
   const [loading, setLoading] = useState(false);
+  const [loadingClass, setLoadingClass] = useState(true);
   const [schedule, setSchedule] = useState(null);
   const [userClass, setUserClass] = useState(null);
+  const [error, setError] = useState(null);
 
-  // Fetch user's class from Firestore
+  // Fetch user's class info using last 4 digits of their uniqueid
   useEffect(() => {
-    const fetchUserClass = async () => {
-      const user = auth.currentUser;
-      if (!user) return;
-
+    const fetchClass = async () => {
       try {
-        const q = query(collection(db, "students"), where("email", "==", user.email));
-        const snapshot = await getDocs(q);
+        const user = auth.currentUser;
+        if (!user) {
+          setError("Please log in first.");
+          setLoadingClass(false);
+          return;
+        }
 
-        if (!snapshot.empty) {
-          const userData = snapshot.docs[0].data();
-          setUserClass(userData.class || 9);
+        // Step 1: Get user doc by UID (created during signup)
+        const userDoc = await getDoc(doc(db, "users", user.uid));
+        if (!userDoc.exists()) {
+          setError("User data not found in Firestore.");
+          setLoadingClass(false);
+          return;
+        }
+
+        const data = userDoc.data();
+        if (!data.uniqueid) {
+          setError("Unique ID not found for this user.");
+          setLoadingClass(false);
+          return;
+        }
+
+        // Step 2: Get last 4 digits of the uniqueid
+        const last4 = String(data.uniqueid).slice(-4);
+
+        // Step 3: Fetch class document using last 4 digits
+        const classDocRef = doc(db, "students", last4);
+        const classDoc = await getDoc(classDocRef);
+
+        if (classDoc.exists()) {
+          const classData = classDoc.data();
+          if (classData.class) {
+            setUserClass(classData.class);
+          } else {
+            setError("Class info missing in document.");
+          }
         } else {
-          console.warn("No matching student document found.");
+          setError("No document found for ID: " + last4);
         }
       } catch (err) {
         console.error("Error fetching class:", err);
+        setError("Error fetching class info.");
+      } finally {
+        setLoadingClass(false);
       }
     };
 
-    fetchUserClass();
+    fetchClass();
   }, []);
 
-  // Subject list per class
+  // Subjects per class
   const subjectMap = {
-    1: ["english", "math", "evs"],
-    2: ["english", "math", "evs"],
-    3: ["english", "math", "science", "sst"],
-    4: ["english", "math", "science", "sst"],
-    5: ["english", "math", "science", "sst"],
-    6: ["english", "math", "science", "sst", "computer"],
-    7: ["english", "math", "science", "sst", "computer"],
-    8: ["english", "math", "science", "sst", "computer"],
-    9: ["math", "science", "english", "history", "geography"],
-    10: ["math", "science", "english", "history", "economics"],
+    9: ["english", "maths", "science", "sst"],
+    10: ["english", "maths", "science", "sst"],
   };
 
   const generateSchedule = async () => {
@@ -50,25 +74,34 @@ export default function Generator() {
     setLoading(true);
 
     try {
-      const subjects = subjectMap[userClass] || [];
+      const subjects = subjectMap[userClass];
       const syllabusTexts = [];
 
-      // Fetch each subject syllabus from GitHub
+      // Fetch each subject's syllabus PDF
       for (const subj of subjects) {
-        const pdfUrl = `https://raw.githubusercontent.com/IamDaGod-kira/master/pdf/class${userClass}/syllabus/${subj}/syllabus.pdf`;
+        // Attempt to find the PDF dynamically (matching files ending with "-class-9.pdf" or "-class-10.pdf")
+        const baseUrl = `https://raw.githubusercontent.com/IamDaGod-kira/generator-3s-kvb/main/pdfs/class9-10/syllabus/${subj}`;
+        const pdfUrl = `${baseUrl}/${subj}-class-${userClass}.pdf`;
 
         const res = await fetch(pdfUrl);
         if (!res.ok) {
-          console.warn(`Failed to fetch ${subj} syllabus`);
+          console.warn(`Failed to fetch syllabus for ${subj} at ${pdfUrl}`);
           continue;
         }
 
-        // Placeholder — ideally parse actual PDF content
-        const pdfContent = `Syllabus content for ${subj}`;
+        // In a real setup, this would parse PDF content; for now, placeholder text
+        const pdfContent = `Syllabus content for ${subj}, class ${userClass}.`;
+
         syllabusTexts.push({ subject: subj, content: pdfContent });
       }
 
-      // Call AI API (URL in your .env)
+      if (syllabusTexts.length === 0) {
+        alert("No syllabus files found for your class.");
+        setLoading(false);
+        return;
+      }
+
+      // Call your AI API
       const aiRes = await fetch(import.meta.env.VITE_AIAPI, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -80,34 +113,25 @@ export default function Generator() {
       });
 
       const data = await aiRes.json();
-      const finalSchedule = data.schedule || [];
-      setSchedule(finalSchedule);
+      const generatedSchedule = data.schedule || [];
 
-      // Save generated schedule
+      setSchedule(generatedSchedule);
+
+      // Save schedule to Firestore
       const user = auth.currentUser;
       if (user) {
-        const q = query(collection(db, "students"), where("email", "==", user.email));
-        const snapshot = await getDocs(q);
-
-        if (!snapshot.empty) {
-          const userDoc = snapshot.docs[0];
-          await setDoc(
-            doc(db, "schedules", userDoc.id),
-            {
-              class: userClass,
-              schedule: finalSchedule,
-              generatedAt: new Date().toISOString(),
-            },
-            { merge: true }
-          );
-        }
+        await setDoc(doc(db, "schedules", user.uid), {
+          class: userClass,
+          schedule: generatedSchedule,
+          generatedAt: new Date().toISOString(),
+        });
       }
     } catch (err) {
       console.error("Error generating schedule:", err);
-      alert("Failed to generate schedule. Try again.");
-    } finally {
-      setLoading(false);
+      alert("Error generating schedule. Check console for details.");
     }
+
+    setLoading(false);
   };
 
   return (
@@ -116,15 +140,28 @@ export default function Generator() {
         Smart Schedule Generator
       </h1>
 
-      <button
-        onClick={generateSchedule}
-        disabled={loading || !userClass}
-        className={`${
-          loading ? "bg-gray-400" : "bg-blue-600 hover:bg-blue-700"
-        } text-white font-semibold px-6 py-2 rounded-xl transition`}
-      >
-        {loading ? "Generating..." : `Generate Class ${userClass} Schedule`}
-      </button>
+      {loadingClass ? (
+        <button
+          disabled
+          className="bg-gray-400 text-white font-semibold px-6 py-2 rounded-xl"
+        >
+          Fetching class info...
+        </button>
+      ) : error ? (
+        <p className="text-red-600">{error}</p>
+      ) : (
+        <button
+          onClick={generateSchedule}
+          disabled={loading}
+          className={`${
+            loading ? "bg-gray-400" : "bg-blue-600 hover:bg-blue-700"
+          } text-white font-semibold px-6 py-2 rounded-xl transition`}
+        >
+          {loading
+            ? "Generating..."
+            : `Generate Schedule for Class ${userClass}`}
+        </button>
+      )}
 
       {schedule && schedule.length > 0 && (
         <div className="mt-8 w-full max-w-3xl bg-white shadow-lg rounded-2xl p-6">
