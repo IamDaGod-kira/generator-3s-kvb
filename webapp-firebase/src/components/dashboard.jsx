@@ -9,6 +9,7 @@ import {
   where,
   deleteDoc,
 } from "firebase/firestore";
+import Generator from "./Generator";
 
 export default function Dashboard() {
   const [user, setUser] = useState(null);
@@ -86,14 +87,9 @@ export default function Dashboard() {
   return (
     <main className="max-w-6xl mx-auto my-10 bg-white rounded-xl shadow-lg overflow-hidden">
       <div className="flex flex-col lg:flex-row">
-        {/* Left side: Schedule area */}
+        {/* Left side: Schedule generator */}
         <div className="w-full lg:w-[65%] p-6 sm:p-8 bg-gradient-to-r from-[#d3f3ff]/40 to-[#fff0a5]/40 flex flex-col items-center justify-center text-center">
-          <h2 className="text-xl sm:text-2xl font-semibold text-sky-700 mb-4">
-            Your Smart Study Schedule
-          </h2>
-          <p className="text-gray-700 italic text-sm sm:text-base">
-            The AI-generated schedule will appear here once available.
-          </p>
+          <Generator classLevel={studentData?.class} /> {/* Pass class info to Generator */}
         </div>
 
         {/* Right side: Student info */}
@@ -127,6 +123,9 @@ export default function Dashboard() {
                 </div>
                 <div>
                   <strong>Phone:</strong> {studentData.phone}
+                </div>
+                <div>
+                  <strong>Class:</strong> {studentData.class}
                 </div>
                 <div>
                   <strong>Unique ID:</strong> {studentData.uniqueid}

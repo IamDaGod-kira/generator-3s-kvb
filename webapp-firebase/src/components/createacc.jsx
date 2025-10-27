@@ -31,6 +31,7 @@ export default function Createacc() {
         phone: formData.phone,
         uniqueid: formData.uniqueid,
         password: formData.password,
+        class: formData.class, // Added class field
         createdAt: new Date().toISOString(),
         uid: userCredential.user.uid,
       });
@@ -94,6 +95,21 @@ export default function Createacc() {
             placeholder="Unique ID"
             className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
           />
+
+          {/* Class selection */}
+          <select
+            name="class"
+            onChange={handleChange}
+            required
+            className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">Select Class</option>
+            {[...Array(10)].map((_, i) => (
+              <option key={i + 1} value={i + 1}>
+                Class {i + 1}
+              </option>
+            ))}
+          </select>
 
           <button
             type="submit"
