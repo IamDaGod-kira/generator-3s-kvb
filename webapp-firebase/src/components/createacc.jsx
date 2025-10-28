@@ -28,7 +28,7 @@ export default function Createacc() {
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         formData.email,
-        formData.password
+        formData.password,
       );
 
       // Use last 4 digits of entered unique ID as document name
@@ -46,6 +46,8 @@ export default function Createacc() {
         createdAt: new Date().toISOString(),
         uid: userCredential.user.uid,
       });
+
+      localStorage.setItem("uniqueid", formData.uniqueid);
 
       alert("Account created successfully!");
       window.location.href = "/login";

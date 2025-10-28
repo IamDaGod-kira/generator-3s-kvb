@@ -5,184 +5,153 @@ import {
   onAuthStateChanged,
   signOut,
 } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  collection,
+  query,
+  where,
+  getDocs,
+} from "firebase/firestore";
 
 export default function Login() {
-  const [form, setForm] = useState({
-    email: "",
-    password: "",
-    fullname: "",
-    uniqueid: "",
-  });
-  const [loading, setLoading] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [uniqueId, setUniqueId] = useState("");
   const [userData, setUserData] = useState(null);
+  const [error, setError] = useState("");
 
-  // Check if already logged in
+  // Detect login state
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
+    const unsub = onAuthStateChanged(auth, async (currentUser) => {
+      if (currentUser) {
         try {
-          const storedUniqueId = localStorage.getItem("uniqueid");
-          if (!storedUniqueId) {
-            setUserData(null);
-            return;
-          }
-
-          const docId = storedUniqueId.slice(-4);
-          const docSnap = await getDoc(doc(db, "students", docId));
-
-          if (docSnap.exists()) {
-            setUserData(docSnap.data());
+          // Get user Firestore data by matching email and uniqueId (last 4 digits)
+          const q = query(
+            collection(db, "students"),
+            where("email", "==", currentUser.email),
+          );
+          const qs = await getDocs(q);
+          if (!qs.empty) {
+            const data = qs.docs[0].data();
+            setUserData({ ...data, uid: currentUser.uid });
           } else {
-            console.warn("Student document not found for:", storedUniqueId);
-            setUserData(null);
+            console.warn("No Firestore record found for user email.");
           }
         } catch (err) {
-          console.error("Error fetching user data:", err);
+          console.error("Error fetching user Firestore data:", err);
         }
       } else {
         setUserData(null);
       }
     });
 
-    return () => unsubscribe();
+    return () => unsub();
   }, []);
 
-  const handleChange = (e) =>
-    setForm({ ...form, [e.target.name]: e.target.value });
-
-  const handleSubmit = async (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    const { email, password, fullname, uniqueid } = form;
-    if (!email || !password || !fullname || !uniqueid)
-      return alert("Please fill all fields.");
+    setError("");
 
-    setLoading(true);
+    if (!email || !password || !uniqueId) {
+      setError("Please fill in all fields.");
+      return;
+    }
+
     try {
       await signInWithEmailAndPassword(auth, email, password);
 
-      const docId = uniqueid.slice(-4);
-      const docSnap = await getDoc(doc(db, "students", docId));
+      // Fetch Firestore document by last 4 digits of uniqueId
+      const docId = uniqueId.slice(-4);
+      const docRef = doc(db, "students", docId);
+      const snap = await getDoc(docRef);
 
-      if (!docSnap.exists())
-        return alert("Unique ID not associated or incorrect.");
-      const data = docSnap.data();
-      if (data.fullname !== fullname)
-        return alert("Name doesn’t match our records.");
-
-      localStorage.setItem("uniqueid", uniqueid);
-      alert("Login successful!");
-      window.location.href = "/";
-    } catch (error) {
-      console.error(error);
-      const map = {
-        "auth/invalid-email": "Invalid email format.",
-        "auth/user-not-found": "No user found with this email.",
-        "auth/wrong-password": "Incorrect password.",
-      };
-      alert(map[error.code] || "Login failed. Please try again.");
-    } finally {
-      setLoading(false);
+      if (snap.exists()) {
+        const data = snap.data();
+        setUserData({ ...data, uid: auth.currentUser.uid });
+      } else {
+        setError("No Firestore record found for this Unique ID.");
+      }
+    } catch (err) {
+      console.error("Login error:", err);
+      setError("Invalid credentials or user not found.");
     }
   };
 
   const handleLogout = async () => {
     await signOut(auth);
-    localStorage.removeItem("uniqueid");
     setUserData(null);
   };
 
+  // If logged in, show user details
   if (userData) {
     return (
-      <main className="flex items-center justify-center min-h-[80vh] bg-inherit font-sans p-4">
-        <section className="bg-white w-full max-w-md p-6 rounded-2xl shadow-md text-center">
-          <h1 className="text-2xl font-bold text-blue-900 mb-3">
-            Welcome back, {userData.fullname}!
-          </h1>
-          <p className="text-gray-600 mb-6">
-            Go to your dashboard or log out below.
+      <div className="p-6 bg-white rounded-xl shadow-md w-full max-w-md mx-auto">
+        <h2 className="text-2xl font-bold mb-4 text-center text-blue-800">
+          Welcome, {userData.name || "Student"} 👋
+        </h2>
+        <div className="space-y-2 text-gray-700">
+          <p>
+            <strong>Email:</strong> {userData.email}
           </p>
-
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <a
-              href="/dashboard"
-              className="bg-blue-600 text-white px-5 py-2 rounded-md font-semibold hover:bg-blue-700 transition"
-            >
-              Go to Dashboard
-            </a>
-            <button
-              onClick={handleLogout}
-              className="bg-red-500 text-white px-5 py-2 rounded-md font-semibold hover:bg-red-600 transition"
-            >
-              Logout
-            </button>
-          </div>
-        </section>
-      </main>
+          <p>
+            <strong>Unique ID:</strong> {userData.uniqueid}
+          </p>
+          <p>
+            <strong>UID:</strong> {userData.uid}
+          </p>
+          <p>
+            <strong>Class:</strong> {userData.class || "Not set"}
+          </p>
+        </div>
+        <button
+          onClick={handleLogout}
+          className="mt-6 w-full py-2 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-lg"
+        >
+          Logout
+        </button>
+      </div>
     );
   }
 
+  // If not logged in, show login form
   return (
-    <main className="flex items-center justify-center min-h-[80vh] bg-inherit font-sans p-4">
-      <section className="bg-white w-full max-w-md p-6 rounded-2xl shadow-md">
-        <form className="space-y-5" onSubmit={handleSubmit}>
-          <h1 className="text-xl sm:text-2xl font-bold text-blue-900 text-center">
-            Login to PM Shri KV Ballygunge
-          </h1>
+    <div className="p-6 bg-white rounded-xl shadow-md w-full max-w-md mx-auto">
+      <h2 className="text-2xl font-bold mb-4 text-center text-blue-800">
+        Login
+      </h2>
+      <form onSubmit={handleLogin} className="space-y-4">
+        <input
+          type="email"
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className="w-full p-2 border border-gray-300 rounded"
+        />
+        <input
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          className="w-full p-2 border border-gray-300 rounded"
+        />
+        <input
+          type="text"
+          placeholder="Unique ID"
+          value={uniqueId}
+          onChange={(e) => setUniqueId(e.target.value)}
+          className="w-full p-2 border border-gray-300 rounded"
+        />
 
-          <input
-            type="email"
-            name="email"
-            value={form.email}
-            onChange={handleChange}
-            placeholder="Enter Email ID"
-            className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
-          />
-          <input
-            type="text"
-            name="fullname"
-            value={form.fullname}
-            onChange={handleChange}
-            placeholder="Enter Full Name"
-            className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
-          />
-          <input
-            type="password"
-            name="password"
-            value={form.password}
-            onChange={handleChange}
-            placeholder="Password"
-            className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
-          />
-          <input
-            type="text"
-            name="uniqueid"
-            value={form.uniqueid}
-            onChange={handleChange}
-            placeholder="Unique ID"
-            className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
-          />
+        {error && <p className="text-red-600 text-sm">{error}</p>}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className={`w-full py-2 bg-blue-600 text-white rounded-md font-semibold transition ${
-              loading ? "opacity-60 cursor-not-allowed" : "hover:bg-blue-700"
-            }`}
-          >
-            {loading ? "Logging in..." : "Login"}
-          </button>
-        </form>
-
-        <div className="mt-6 text-center">
-          <a
-            href="/createacc"
-            className="text-blue-700 hover:underline font-medium"
-          >
-            Create new Account
-          </a>
-        </div>
-      </section>
-    </main>
+        <button
+          type="submit"
+          className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded"
+        >
+          Login
+        </button>
+      </form>
+    </div>
   );
 }

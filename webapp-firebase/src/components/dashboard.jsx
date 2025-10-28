@@ -25,7 +25,7 @@ export default function Dashboard() {
         try {
           const q = query(
             collection(db, "students"),
-            where("email", "==", currentUser.email)
+            where("email", "==", currentUser.email),
           );
           const querySnapshot = await getDocs(q);
           if (!querySnapshot.empty) {
@@ -51,7 +51,7 @@ export default function Dashboard() {
     if (!studentData) return alert("No student data found to delete.");
     if (
       !window.confirm(
-        "Are you sure you want to delete your account? This cannot be undone."
+        "Are you sure you want to delete your account? This cannot be undone.",
       )
     )
       return;
@@ -89,7 +89,8 @@ export default function Dashboard() {
       <div className="flex flex-col lg:flex-row">
         {/* Left side: Schedule generator */}
         <div className="w-full lg:w-[65%] p-6 sm:p-8 bg-gradient-to-r from-[#d3f3ff]/40 to-[#fff0a5]/40 flex flex-col items-center justify-center text-center">
-          <Generator classLevel={studentData?.class} /> {/* Pass class info to Generator */}
+          <Generator classLevel={studentData?.class} />{" "}
+          {/* Pass class info to Generator */}
         </div>
 
         {/* Right side: Student info */}
@@ -151,7 +152,9 @@ export default function Dashboard() {
                 </button>
               </div>
             ) : (
-              <p className="text-gray-500 text-center">No student data found.</p>
+              <p className="text-gray-500 text-center">
+                No student data found.
+              </p>
             )}
           </div>
         </div>

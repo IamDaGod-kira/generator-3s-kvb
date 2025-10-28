@@ -1,162 +1,156 @@
-import React, { useState, useEffect } from "react";
-import { auth, db } from "../main";
-import { doc, getDocs, collection, query, where, updateDoc } from "firebase/firestore";
+import React, { useState } from "react";
 
 export default function Generator() {
-  const [loading, setLoading] = useState(true);
-  const [studentDocId, setStudentDocId] = useState(null);
-  const [studentData, setStudentData] = useState(null);
-  const [schedule, setSchedule] = useState(null);
-  const [generating, setGenerating] = useState(false);
+  const [selectedClass, setSelectedClass] = useState("9");
+  const [results, setResults] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  useEffect(() => {
-    const fetchStudent = async () => {
-      try {
-        const user = auth.currentUser;
-        if (!user) {
-          console.error("No logged-in user found.");
-          setLoading(false);
-          return;
-        }
+  const subjects = ["english", "maths", "science", "sst"];
 
-        const q = query(collection(db, "students"), where("email", "==", user.email));
-        const querySnapshot = await getDocs(q);
+  const handleGenerateAll = async () => {
+    setError("");
+    setResults([]);
+    setLoading(true);
 
-        if (!querySnapshot.empty) {
-          const docSnap = querySnapshot.docs[0];
-          setStudentData(docSnap.data());
-          setStudentDocId(docSnap.id); // last 4 digits of uniqueid
-        } else {
-          console.error("No student record found for this user.");
-        }
-      } catch (err) {
-        console.error("Error fetching student:", err);
-      }
-      setLoading(false);
-    };
-
-    fetchStudent();
-  }, []);
-
-  const generateSchedule = async () => {
-    if (!studentData || !studentData.class) {
-      return alert("Class not found in your profile.");
-    }
-
-    setGenerating(true);
     try {
-      const classLevel = studentData.class;
-      const subjects = ["english", "maths", "science", "sst"];
-      const syllabusData = [];
+      const apiKey = import.meta.env.VITE_AIAPI;
+      if (!apiKey) throw new Error("Missing AI API key in .env file.");
 
-      for (const subj of subjects) {
-        const pdfUrl = `https://raw.githubusercontent.com/IamDaGod-kira/generator-3s-kvb/master/pdf/class9-10/syllabus/${subj}/class-${classLevel}.pdf`;
+      const newResults = [];
 
-        const res = await fetch(pdfUrl);
-        if (!res.ok) {
-          console.warn(`No syllabus found for ${subj}`);
-          continue;
+      for (const subject of subjects) {
+        try {
+          const pdfUrl = `https://raw.githubusercontent.com/IamDaGod-kira/generator-3s-kvb/master/pdf/class9-10/syllabus/${subject}/class-${selectedClass}.pdf`;
+
+          const response = await fetch(pdfUrl);
+          if (!response.ok)
+            throw new Error(`Failed to fetch ${subject} syllabus.`);
+
+          const blob = await response.blob();
+          const text = await blob.text();
+
+          const prompt = `You are an expert academic planner. Generate a 7-day study schedule for the subject "${subject}" using the following syllabus content:\n\n${text}\n\nReturn only valid JSON (an array of objects) with these keys: "Day", "Topic", "Hours", "Activity". Do NOT include any explanation or extra text.`;
+
+          const aiResponse = await fetch(
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "X-goog-api-key": apiKey,
+              },
+              body: JSON.stringify({
+                contents: [
+                  {
+                    parts: [{ text: prompt }],
+                  },
+                ],
+              }),
+            },
+          );
+
+          const data = await aiResponse.json();
+          const aiText =
+            data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
+
+          let parsed = null;
+          try {
+            // Attempt to extract JSON even if AI includes markdown formatting
+            const jsonMatch = aiText.match(/\[.*\]|\{.*\}/s);
+            parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : JSON.parse(aiText);
+          } catch {
+            parsed = null;
+          }
+
+          newResults.push({
+            subject,
+            raw: aiText || "No response from AI.",
+            schedule: parsed,
+          });
+        } catch (subjectErr) {
+          console.error(subjectErr);
+          newResults.push({
+            subject,
+            raw: `Error: ${subjectErr.message}`,
+            schedule: null,
+          });
         }
-
-        // For now, we don’t parse the PDF content — just mock that it’s included
-        syllabusData.push({ subject: subj, content: `Syllabus for ${subj}` });
       }
 
-      if (syllabusData.length === 0) {
-        alert("No syllabus files found for your class.");
-        setGenerating(false);
-        return;
-      }
-
-      const aiRes = await fetch(import.meta.env.VITE_AIAPI, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt: `You are an academic planner. Create a detailed study schedule for a Class ${classLevel} student using this syllabus data: ${JSON.stringify(
-            syllabusData
-          )}. Include daily study hours per subject, mock tests, and practice days to complete the full syllabus before the academic session ends.`,
-        }),
-      });
-
-      const data = await aiRes.json();
-      const generatedSchedule = data.schedule || [];
-
-      setSchedule(generatedSchedule);
-
-      // Save the schedule to the student’s Firestore document
-      if (studentDocId) {
-        await updateDoc(doc(db, "students", studentDocId), {
-          syllabus: generatedSchedule,
-          updatedAt: new Date().toISOString(),
-        });
-      }
+      setResults(newResults);
     } catch (err) {
-      console.error("Error generating schedule:", err);
-      alert("Failed to generate schedule. Please try again later.");
+      console.error(err);
+      setError(err.message || "Something went wrong.");
+    } finally {
+      setLoading(false);
     }
-    setGenerating(false);
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen text-gray-600">
-        Fetching your details...
-      </div>
-    );
-  }
-
   return (
-    <div className="w-full flex flex-col items-center justify-center p-6 sm:p-10 bg-gradient-to-r from-[#d3f3ff]/40 to-[#fff0a5]/40 rounded-xl shadow-md">
-      <h1 className="text-2xl sm:text-3xl font-bold text-blue-900 mb-6 text-center">
+    <div className="p-6 bg-gray-50 min-h-screen">
+      <h2 className="text-2xl font-semibold mb-4 text-blue-700">
         Smart Study Schedule Generator
-      </h1>
+      </h2>
 
-      <button
-        onClick={generateSchedule}
-        disabled={generating}
-        className={`px-6 py-3 text-white font-semibold rounded-lg shadow-md transition ${
-          generating
-            ? "bg-gray-400 cursor-not-allowed"
-            : "bg-blue-600 hover:bg-blue-700"
-        }`}
-      >
-        {generating
-          ? "Generating your schedule..."
-          : `Generate Schedule for Class ${studentData?.class}`}
-      </button>
+      <div className="flex items-center gap-4 mb-6">
+        <label className="font-medium">Select Class:</label>
+        <select
+          value={selectedClass}
+          onChange={(e) => setSelectedClass(e.target.value)}
+          className="border rounded p-2"
+        >
+          <option value="9">Class 9</option>
+          <option value="10">Class 10</option>
+        </select>
 
-      {schedule && schedule.length > 0 && (
-        <div className="mt-8 w-full max-w-4xl bg-white rounded-xl shadow-lg p-6 overflow-x-auto">
-          <h2 className="text-xl font-semibold mb-4 text-gray-800 text-center">
-            Generated Study Schedule
-          </h2>
-          <table className="w-full border-collapse border border-gray-300 text-sm sm:text-base">
-            <thead className="bg-blue-50">
-              <tr>
-                <th className="border border-gray-300 px-4 py-2">Subject</th>
-                <th className="border border-gray-300 px-4 py-2">Hours/Day</th>
-                <th className="border border-gray-300 px-4 py-2">Notes</th>
-              </tr>
-            </thead>
-            <tbody>
-              {schedule.map((item, i) => (
-                <tr
-                  key={i}
-                  className="text-center hover:bg-blue-50 transition-colors"
-                >
-                  <td className="border border-gray-300 px-4 py-2 capitalize">
-                    {item.subject || `Subject ${i + 1}`}
-                  </td>
-                  <td className="border border-gray-300 px-4 py-2">
-                    {item.hoursPerDay || "N/A"}
-                  </td>
-                  <td className="border border-gray-300 px-4 py-2">
-                    {item.notes || "—"}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <button
+          onClick={handleGenerateAll}
+          disabled={loading}
+          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+        >
+          {loading ? "Generating..." : "Generate All Schedules"}
+        </button>
+      </div>
+
+      {error && <p className="text-red-500 font-medium">{error}</p>}
+
+      {results.length > 0 && (
+        <div className="space-y-6">
+          {results.map((res, idx) => (
+            <div key={idx} className="p-4 bg-white rounded shadow">
+              <h3 className="text-lg font-semibold mb-2 capitalize text-blue-800">
+                {res.subject}
+              </h3>
+
+              {res.schedule ? (
+                <table className="w-full border border-gray-300 text-sm rounded-lg">
+                  <thead className="bg-gray-100">
+                    <tr>
+                      <th className="border p-2">Day</th>
+                      <th className="border p-2">Topic</th>
+                      <th className="border p-2">Hours</th>
+                      <th className="border p-2">Activity</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {res.schedule.map((row, i) => (
+                      <tr key={i} className="text-center">
+                        <td className="border p-2">{row.Day}</td>
+                        <td className="border p-2">{row.Topic}</td>
+                        <td className="border p-2">{row.Hours}</td>
+                        <td className="border p-2">{row.Activity}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <pre className="whitespace-pre-wrap text-gray-700 text-sm mt-2 bg-gray-50 p-3 rounded">
+                  {res.raw}
+                </pre>
+              )}
+            </div>
+          ))}
         </div>
       )}
     </div>

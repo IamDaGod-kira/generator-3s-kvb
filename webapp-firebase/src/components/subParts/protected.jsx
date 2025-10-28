@@ -2,7 +2,7 @@
 import { lazy, useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { onAuthStateChanged, getAuth } from "firebase/auth";
-const Loading = lazy(() => import('./loading'))
+const Loading = lazy(() => import("./loading"));
 
 export default function Protected({ children }) {
   const [user, setUser] = useState(null);
