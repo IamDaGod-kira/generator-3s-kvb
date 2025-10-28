@@ -1,114 +1,80 @@
 import React, { useState, useEffect } from "react";
-import { db, auth } from "../main";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { auth, db } from "../main";
+import { doc, getDocs, collection, query, where, updateDoc } from "firebase/firestore";
 
 export default function Generator() {
-  const [loading, setLoading] = useState(false);
-  const [loadingClass, setLoadingClass] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [studentDocId, setStudentDocId] = useState(null);
+  const [studentData, setStudentData] = useState(null);
   const [schedule, setSchedule] = useState(null);
-  const [userClass, setUserClass] = useState(null);
-  const [error, setError] = useState(null);
+  const [generating, setGenerating] = useState(false);
 
-  // Fetch user's class info using last 4 digits of their uniqueid
   useEffect(() => {
-    const fetchClass = async () => {
+    const fetchStudent = async () => {
       try {
         const user = auth.currentUser;
         if (!user) {
-          setError("Please log in first.");
-          setLoadingClass(false);
+          console.error("No logged-in user found.");
+          setLoading(false);
           return;
         }
 
-        // Step 1: Get user doc by UID (created during signup)
-        const userDoc = await getDoc(doc(db, "users", user.uid));
-        if (!userDoc.exists()) {
-          setError("User data not found in Firestore.");
-          setLoadingClass(false);
-          return;
-        }
+        const q = query(collection(db, "students"), where("email", "==", user.email));
+        const querySnapshot = await getDocs(q);
 
-        const data = userDoc.data();
-        if (!data.uniqueid) {
-          setError("Unique ID not found for this user.");
-          setLoadingClass(false);
-          return;
-        }
-
-        // Step 2: Get last 4 digits of the uniqueid
-        const last4 = String(data.uniqueid).slice(-4);
-
-        // Step 3: Fetch class document using last 4 digits
-        const classDocRef = doc(db, "students", last4);
-        const classDoc = await getDoc(classDocRef);
-
-        if (classDoc.exists()) {
-          const classData = classDoc.data();
-          if (classData.class) {
-            setUserClass(classData.class);
-          } else {
-            setError("Class info missing in document.");
-          }
+        if (!querySnapshot.empty) {
+          const docSnap = querySnapshot.docs[0];
+          setStudentData(docSnap.data());
+          setStudentDocId(docSnap.id); // last 4 digits of uniqueid
         } else {
-          setError("No document found for ID: " + last4);
+          console.error("No student record found for this user.");
         }
       } catch (err) {
-        console.error("Error fetching class:", err);
-        setError("Error fetching class info.");
-      } finally {
-        setLoadingClass(false);
+        console.error("Error fetching student:", err);
       }
+      setLoading(false);
     };
 
-    fetchClass();
+    fetchStudent();
   }, []);
 
-  // Subjects per class
-  const subjectMap = {
-    9: ["english", "maths", "science", "sst"],
-    10: ["english", "maths", "science", "sst"],
-  };
-
   const generateSchedule = async () => {
-    if (!userClass) return alert("User class not found!");
-    setLoading(true);
+    if (!studentData || !studentData.class) {
+      return alert("Class not found in your profile.");
+    }
 
+    setGenerating(true);
     try {
-      const subjects = subjectMap[userClass];
-      const syllabusTexts = [];
+      const classLevel = studentData.class;
+      const subjects = ["english", "maths", "science", "sst"];
+      const syllabusData = [];
 
-      // Fetch each subject's syllabus PDF
       for (const subj of subjects) {
-        // Attempt to find the PDF dynamically (matching files ending with "-class-9.pdf" or "-class-10.pdf")
-        const baseUrl = `https://raw.githubusercontent.com/IamDaGod-kira/generator-3s-kvb/main/pdfs/class9-10/syllabus/${subj}`;
-        const pdfUrl = `${baseUrl}/${subj}-class-${userClass}.pdf`;
+        const pdfUrl = `https://raw.githubusercontent.com/IamDaGod-kira/generator-3s-kvb/master/pdf/class9-10/syllabus/${subj}/class-${classLevel}.pdf`;
 
         const res = await fetch(pdfUrl);
         if (!res.ok) {
-          console.warn(`Failed to fetch syllabus for ${subj} at ${pdfUrl}`);
+          console.warn(`No syllabus found for ${subj}`);
           continue;
         }
 
-        // In a real setup, this would parse PDF content; for now, placeholder text
-        const pdfContent = `Syllabus content for ${subj}, class ${userClass}.`;
-
-        syllabusTexts.push({ subject: subj, content: pdfContent });
+        // For now, we don’t parse the PDF content — just mock that it’s included
+        syllabusData.push({ subject: subj, content: `Syllabus for ${subj}` });
       }
 
-      if (syllabusTexts.length === 0) {
+      if (syllabusData.length === 0) {
         alert("No syllabus files found for your class.");
-        setLoading(false);
+        setGenerating(false);
         return;
       }
 
-      // Call your AI API
       const aiRes = await fetch(import.meta.env.VITE_AIAPI, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          prompt: `Create a detailed study schedule for Class ${userClass} using this syllabus: ${JSON.stringify(
-            syllabusTexts
-          )}. Include daily hours, subject focus, revision days, and test preparation.`,
+          prompt: `You are an academic planner. Create a detailed study schedule for a Class ${classLevel} student using this syllabus data: ${JSON.stringify(
+            syllabusData
+          )}. Include daily study hours per subject, mock tests, and practice days to complete the full syllabus before the academic session ends.`,
         }),
       });
 
@@ -117,77 +83,80 @@ export default function Generator() {
 
       setSchedule(generatedSchedule);
 
-      // Save schedule to Firestore
-      const user = auth.currentUser;
-      if (user) {
-        await setDoc(doc(db, "schedules", user.uid), {
-          class: userClass,
-          schedule: generatedSchedule,
-          generatedAt: new Date().toISOString(),
+      // Save the schedule to the student’s Firestore document
+      if (studentDocId) {
+        await updateDoc(doc(db, "students", studentDocId), {
+          syllabus: generatedSchedule,
+          updatedAt: new Date().toISOString(),
         });
       }
     } catch (err) {
       console.error("Error generating schedule:", err);
-      alert("Error generating schedule. Check console for details.");
+      alert("Failed to generate schedule. Please try again later.");
     }
-
-    setLoading(false);
+    setGenerating(false);
   };
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen text-gray-600">
+        Fetching your details...
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 p-6">
-      <h1 className="text-3xl font-bold mb-4 text-center text-gray-800">
-        Smart Schedule Generator
+    <div className="w-full flex flex-col items-center justify-center p-6 sm:p-10 bg-gradient-to-r from-[#d3f3ff]/40 to-[#fff0a5]/40 rounded-xl shadow-md">
+      <h1 className="text-2xl sm:text-3xl font-bold text-blue-900 mb-6 text-center">
+        Smart Study Schedule Generator
       </h1>
 
-      {loadingClass ? (
-        <button
-          disabled
-          className="bg-gray-400 text-white font-semibold px-6 py-2 rounded-xl"
-        >
-          Fetching class info...
-        </button>
-      ) : error ? (
-        <p className="text-red-600">{error}</p>
-      ) : (
-        <button
-          onClick={generateSchedule}
-          disabled={loading}
-          className={`${
-            loading ? "bg-gray-400" : "bg-blue-600 hover:bg-blue-700"
-          } text-white font-semibold px-6 py-2 rounded-xl transition`}
-        >
-          {loading
-            ? "Generating..."
-            : `Generate Schedule for Class ${userClass}`}
-        </button>
-      )}
+      <button
+        onClick={generateSchedule}
+        disabled={generating}
+        className={`px-6 py-3 text-white font-semibold rounded-lg shadow-md transition ${
+          generating
+            ? "bg-gray-400 cursor-not-allowed"
+            : "bg-blue-600 hover:bg-blue-700"
+        }`}
+      >
+        {generating
+          ? "Generating your schedule..."
+          : `Generate Schedule for Class ${studentData?.class}`}
+      </button>
 
       {schedule && schedule.length > 0 && (
-        <div className="mt-8 w-full max-w-3xl bg-white shadow-lg rounded-2xl p-6">
-          <h2 className="text-xl font-semibold mb-4 text-center text-gray-700">
-            Generated Schedule
+        <div className="mt-8 w-full max-w-4xl bg-white rounded-xl shadow-lg p-6 overflow-x-auto">
+          <h2 className="text-xl font-semibold mb-4 text-gray-800 text-center">
+            Generated Study Schedule
           </h2>
-          <div className="space-y-3">
-            {schedule.map((item, i) => (
-              <div
-                key={i}
-                className="border border-gray-200 rounded-lg p-3 hover:bg-gray-50"
-              >
-                <p className="font-medium text-gray-800">
-                  {item.subject || `Subject ${i + 1}`}
-                </p>
-                <p className="text-sm text-gray-600">
-                  {item.hoursPerDay
-                    ? `${item.hoursPerDay} hrs/day`
-                    : "Duration: not specified"}
-                </p>
-                {item.notes && (
-                  <p className="text-xs text-gray-500 mt-1">{item.notes}</p>
-                )}
-              </div>
-            ))}
-          </div>
+          <table className="w-full border-collapse border border-gray-300 text-sm sm:text-base">
+            <thead className="bg-blue-50">
+              <tr>
+                <th className="border border-gray-300 px-4 py-2">Subject</th>
+                <th className="border border-gray-300 px-4 py-2">Hours/Day</th>
+                <th className="border border-gray-300 px-4 py-2">Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              {schedule.map((item, i) => (
+                <tr
+                  key={i}
+                  className="text-center hover:bg-blue-50 transition-colors"
+                >
+                  <td className="border border-gray-300 px-4 py-2 capitalize">
+                    {item.subject || `Subject ${i + 1}`}
+                  </td>
+                  <td className="border border-gray-300 px-4 py-2">
+                    {item.hoursPerDay || "N/A"}
+                  </td>
+                  <td className="border border-gray-300 px-4 py-2">
+                    {item.notes || "—"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </div>

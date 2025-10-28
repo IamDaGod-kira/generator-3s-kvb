@@ -1,11 +1,18 @@
 import React, { useState } from "react";
 import { auth, db } from "../main";
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { doc, setDoc, collection } from "firebase/firestore";
+import { doc, setDoc } from "firebase/firestore";
 
 export default function Createacc() {
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({});
+  const [formData, setFormData] = useState({
+    fullname: "",
+    email: "",
+    phone: "",
+    password: "",
+    uniqueid: "",
+    class: "",
+  });
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -15,23 +22,27 @@ export default function Createacc() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+
     try {
+      // Create user in Firebase Authentication
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         formData.email,
         formData.password
       );
 
+      // Use last 4 digits of entered unique ID as document name
       const uniquePart = formData.uniqueid.slice(-4);
-      const docRef = doc(collection(db, "students"), uniquePart);
+      const docRef = doc(db, "students", uniquePart);
 
+      // Save user data (including class) in their own document
       await setDoc(docRef, {
         fullname: formData.fullname,
         email: formData.email,
         phone: formData.phone,
         uniqueid: formData.uniqueid,
         password: formData.password,
-        class: formData.class, // Added class field
+        class: formData.class,
         createdAt: new Date().toISOString(),
         uid: userCredential.user.uid,
       });
@@ -96,7 +107,6 @@ export default function Createacc() {
             className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
           />
 
-          {/* Class selection */}
           <select
             name="class"
             onChange={handleChange}

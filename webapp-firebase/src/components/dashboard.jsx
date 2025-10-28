@@ -9,7 +9,7 @@ import {
   where,
   deleteDoc,
 } from "firebase/firestore";
-import Generator from "./Generator";
+import Generator from "./generator";
 
 export default function Dashboard() {
   const [user, setUser] = useState(null);
