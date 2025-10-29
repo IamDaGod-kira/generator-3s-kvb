@@ -151,6 +151,14 @@ export default function Login() {
         >
           Login
         </button>
+        <br />
+        <br />
+        <a
+          href="/createacc"
+          className="w-auto text-center bg-white text-blue-600 px-3 sm:px-4 py-2 rounded-full font-bold flex items-center gap-2 hover:bg-blue-50 hover:shadow-md"
+        >
+          Create a new Account
+        </a>
       </form>
     </div>
   );

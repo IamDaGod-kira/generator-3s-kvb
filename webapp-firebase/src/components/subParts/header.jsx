@@ -1,6 +1,15 @@
 import { useState, useEffect } from "react";
 import { auth, db } from "../../main";
-import { doc, getDoc, updateDoc, setDoc } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  setDoc,
+  updateDoc,
+  collection,
+  query,
+  where,
+  getDocs,
+} from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { User } from "lucide-react";
 
@@ -13,29 +22,51 @@ export default function Header() {
   const [fade, setFade] = useState(true);
   const [user, setUser] = useState(null);
 
-  // Watch auth state
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
 
       if (currentUser) {
         try {
-          const userRef = doc(db, "students", currentUser.uid);
-          const userSnap = await getDoc(userRef);
+          // find the student's uniqueid field in their doc
+          const studentQuery = query(
+            collection(db, "students"),
+            where("uid", "==", currentUser.uid),
+          );
+          const snapshot = await getDocs(studentQuery);
 
-          if (userSnap.exists() && userSnap.data().zone) {
-            const userZone = userSnap.data().zone;
-            setSelected(userZone);
-            setCurrent(userZone);
-            localStorage.setItem("zone", userZone);
+          if (!snapshot.empty) {
+            const studentData = snapshot.docs[0].data();
+            const uniqueId = studentData.uniqueid || currentUser.uid.slice(-4);
+            const docId = uniqueId.slice(-4); // last 4 digits for document name
+
+            const userRef = doc(db, "students", docId);
+            const userSnap = await getDoc(userRef);
+
+            if (userSnap.exists() && userSnap.data().zone) {
+              const userZone = userSnap.data().zone;
+              setSelected(userZone);
+              setCurrent(userZone);
+              localStorage.setItem("zone", userZone);
+            } else {
+              const localZone = localStorage.getItem("zone");
+              if (localZone) {
+                await setDoc(userRef, { zone: localZone }, { merge: true });
+              }
+            }
           } else {
             const localZone = localStorage.getItem("zone");
             if (localZone) {
-              await setDoc(userRef, { zone: localZone }, { merge: true });
+              const fallbackId = currentUser.uid.slice(-4);
+              await setDoc(
+                doc(db, "students", fallbackId),
+                { zone: localZone },
+                { merge: true },
+              );
             }
           }
         } catch (err) {
-          console.error("Error loading zone:", err);
+          console.error("Error syncing zone:", err);
         }
       } else {
         setSelected(null);
@@ -47,7 +78,6 @@ export default function Header() {
     return () => unsubscribe();
   }, []);
 
-  // Cycle zones when not logged in or selected
   useEffect(() => {
     if (selected || user) return;
 
@@ -64,7 +94,6 @@ export default function Header() {
     return () => clearInterval(interval);
   }, [index, selected, user]);
 
-  // Handle selection
   const handleZoneSelect = async (option) => {
     setSelected(option);
     setCurrent(option);
@@ -73,12 +102,24 @@ export default function Header() {
 
     if (user) {
       try {
-        const userRef = doc(db, "students", user.uid);
-        await updateDoc(userRef, { zone: option });
-      } catch {
-        // fallback: create new doc if missing
-        const userRef = doc(db, "students", user.uid);
+        const studentQuery = query(
+          collection(db, "students"),
+          where("uid", "==", user.uid),
+        );
+        const snapshot = await getDocs(studentQuery);
+
+        let docId;
+        if (!snapshot.empty) {
+          const studentData = snapshot.docs[0].data();
+          docId = (studentData.uniqueid || user.uid).slice(-4);
+        } else {
+          docId = user.uid.slice(-4);
+        }
+
+        const userRef = doc(db, "students", docId);
         await setDoc(userRef, { zone: option }, { merge: true });
+      } catch (err) {
+        console.error("Error saving zone:", err);
       }
     }
   };

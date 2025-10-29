@@ -134,6 +134,9 @@ export default function Dashboard() {
                 <div>
                   <strong>UID:</strong> {studentData.uid}
                 </div>
+                <div>
+                  <strong>Zone:</strong> {studentData.zone}
+                </div>
 
                 {/* Delete Account button */}
                 <button

@@ -1,17 +1,59 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { auth, db } from "../main";
+import { onAuthStateChanged } from "firebase/auth";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 
 export default function Generator() {
   const [selectedClass, setSelectedClass] = useState("9");
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [user, setUser] = useState(null);
+  const [message, setMessage] = useState("");
 
   const subjects = ["english", "maths", "science", "sst"];
 
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (u) => setUser(u));
+    return () => unsub();
+  }, []);
+
+  const handleFetchSchedule = async () => {
+    setError("");
+    setMessage("");
+    if (!user) {
+      setMessage("You must be logged in to fetch your saved schedule.");
+      return;
+    }
+
+    try {
+      const docRef = doc(db, "schedules", user.uid);
+      const docSnap = await getDoc(docRef);
+
+      if (docSnap.exists()) {
+        const saved = docSnap.data().schedule || [];
+        setResults(saved);
+        setMessage("Fetched saved schedule successfully!");
+      } else {
+        setMessage("No saved schedule found for this user.");
+        setResults([]);
+      }
+    } catch (err) {
+      console.error("Error fetching schedule:", err);
+      setError("Failed to fetch schedule. Try again later.");
+    }
+  };
+
   const handleGenerateAll = async () => {
+    if (!user) {
+      setMessage("Please log in to generate and save schedules.");
+      return;
+    }
+
     setError("");
     setResults([]);
     setLoading(true);
+    setMessage("");
 
     try {
       const apiKey = import.meta.env.VITE_AIAPI;
@@ -41,11 +83,7 @@ export default function Generator() {
                 "X-goog-api-key": apiKey,
               },
               body: JSON.stringify({
-                contents: [
-                  {
-                    parts: [{ text: prompt }],
-                  },
-                ],
+                contents: [{ parts: [{ text: prompt }] }],
               }),
             },
           );
@@ -56,7 +94,6 @@ export default function Generator() {
 
           let parsed = null;
           try {
-            // Attempt to extract JSON even if AI includes markdown formatting
             const jsonMatch = aiText.match(/\[.*\]|\{.*\}/s);
             parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : JSON.parse(aiText);
           } catch {
@@ -78,7 +115,12 @@ export default function Generator() {
         }
       }
 
+      // Save or update in Firestore
+      const docRef = doc(db, "schedules", user.uid);
+      await setDoc(docRef, { schedule: newResults }, { merge: true });
+
       setResults(newResults);
+      setMessage("New schedule generated and saved successfully!");
     } catch (err) {
       console.error(err);
       setError(err.message || "Something went wrong.");
@@ -93,7 +135,7 @@ export default function Generator() {
         Smart Study Schedule Generator
       </h2>
 
-      <div className="flex items-center gap-4 mb-6">
+      <div className="flex items-center gap-4 mb-6 flex-wrap">
         <label className="font-medium">Select Class:</label>
         <select
           value={selectedClass}
@@ -111,12 +153,21 @@ export default function Generator() {
         >
           {loading ? "Generating..." : "Generate All Schedules"}
         </button>
+
+        <button
+          onClick={handleFetchSchedule}
+          disabled={loading}
+          className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+        >
+          Fetch Saved Schedule
+        </button>
       </div>
 
+      {message && <p className="text-green-600 font-medium">{message}</p>}
       {error && <p className="text-red-500 font-medium">{error}</p>}
 
       {results.length > 0 && (
-        <div className="space-y-6">
+        <div className="space-y-6 mt-6">
           {results.map((res, idx) => (
             <div key={idx} className="p-4 bg-white rounded shadow">
               <h3 className="text-lg font-semibold mb-2 capitalize text-blue-800">
