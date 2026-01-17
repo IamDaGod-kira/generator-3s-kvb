@@ -37,7 +37,7 @@ export default function Createacc() {
 
       // Verify token with backend Cloud Function
       const verify = await fetch(
-        "https://generator-3sg-kvb.web.app/verifyCaptcha",
+        "http://localhost:8787",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
